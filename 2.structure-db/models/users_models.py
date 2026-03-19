@@ -6,6 +6,15 @@ class User(SQLModel, table=True):
     password: str
     name: str
 
+class UserSignUp(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    
+class UserUpdate(BaseModel):
+    password: str
+    name: str
+
 class UserSignIn(BaseModel):
     email: EmailStr
     password: str

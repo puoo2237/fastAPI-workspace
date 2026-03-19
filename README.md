@@ -27,6 +27,26 @@ python main.py
     - post
 - 데코레이션
     - @[routerName].[방식]("path", response_model=[출력형태], status_code=[출력상태])
+- DB
+    - 모든 목록 확인
+        - session.query([테이블]).all()
+    - 특정 목록 확인
+        - session.get([테이블], [id])
+        - session.query([테이블]).filter([조건]).first
+    - 추가
+        - session.add([데이터])
+    - 삭제
+        - 목록 가져온 후 session.delete()
+    - 수정
+        - 목록의 가져온 후 수정
+    - 반영
+        - session.commit()
+    - 취소
+        - session.rollback()
+    - 연결 종료 
+        - session.close()
+    - 재조회
+        - session.refresh()
 
 **model**
 - DTO 역할

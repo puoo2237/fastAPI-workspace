@@ -12,7 +12,7 @@ async def lifespan(app: FastAPI):
     yield
     print("앱 종료")
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 router = APIRouter()
 app.include_router(router)
 app.include_router(user_router, prefix="/user")
