@@ -1,8 +1,11 @@
-from fastapi import APIRouter, HTTPException, Path, Query, status, Depends
+from fastapi import APIRouter, HTTPException, status, Path, Query, Depends, Form
 from models.users_models import User, UserSignIn, UserSignUp, UserUpdate
 from database.connection import get_session
+from auth.hash_password import HashPassword
+from auth.jwt_handler import create_access_token, verify_access_token
 
 user_router = APIRouter(tags=["User"])
+hash_password = HashPassword()
 
 # @user_router.get("/test")
 # async def test()->dict:
@@ -22,9 +25,13 @@ async def get_users(
 
 @user_router.get("/one", status_code=status.HTTP_200_OK)
 async def get_user(
+    token: str=Depends(verify_access_token),
     id:int=Query(1, description="사용자 ID"), 
     session=Depends(get_session)
     )->User:
+    # print(f"req token: {token}")
+    # re_token = verify_access_token(token)
+    print(f"return token: {token}")
     user = session.get(User, id)
     if not user:
         raise HTTPException(
@@ -35,7 +42,7 @@ async def get_user(
 
 @user_router.put("/put/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update(
-    data: UserUpdate,
+    data: UserUpdate=Form(...),
     id:int=Path(..., description="사용자 ID"),
     session=Depends(get_session)
     ):
@@ -65,17 +72,19 @@ async def delete(
 
 @user_router.post("/signup", status_code=status.HTTP_201_CREATED)
 async def insert(
-    data: UserSignUp, 
+    data: UserSignUp=Form(...), 
     session=Depends(get_session)
-    )->dict:
+    )->dict: 
+    
     if session.query(User).filter(User.email == data.email).first():
         raise HTTPException(
             status_code = status.HTTP_409_CONFLICT,
             detail="존재하는 email"
         )
+
     user = User(
         email = data.email,
-        password= data.password,
+        password= hash_password.create_hash(),
         name=data.name
     )
     session.add(user)
@@ -85,16 +94,18 @@ async def insert(
 
 @user_router.post("/signin", status_code=status.HTTP_200_OK)
 async def signin_user(
-    data: UserSignIn, 
+    data: UserSignIn=Form(...), 
     session=Depends(get_session)
     )->dict:
     user = session.query(User).filter(User.email == data.email).first()
     if user:
-        if user.password == data.password:
-                return {"message": "Signin successful"}
+        if hash_password.verify_hash(data.password, user.password):
+            return {
+                    "token": create_access_token(data.email), 
+                    "type": "bearer"                    }
         else:
             raise HTTPException(
-                status_code = status.HTTP_401_UNAUTHORIZED,
+                status_code = status.HTTP_403_FORBIDDEN,
                 detail="Invalid password"
             )
     raise HTTPException(
